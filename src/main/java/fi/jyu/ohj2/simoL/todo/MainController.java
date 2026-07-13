@@ -111,7 +111,7 @@ public class MainController implements Initializable {
             }
             tallenna();
         });
-        
+
             uusiTehtavaNimi.clear();
             uusiTehtavaNimi.requestFocus();
 
