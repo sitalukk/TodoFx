@@ -1,5 +1,8 @@
 package fi.jyu.ohj2.simoL.todo;
 
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
@@ -19,6 +22,9 @@ import java.util.List;
 import java.util.ResourceBundle;
 
 public class MainController implements Initializable {
+
+    private ObservableList<Tehtava> tehtavat = FXCollections.observableArrayList();
+
     @FXML
     private Button lisaaUusiTehtavaPainike;
 
@@ -33,6 +39,10 @@ public class MainController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        tehtavat.addListener((ListChangeListener<Tehtava>) change -> {
+            paivitaNakyma();
+            tallenna();
+        });
         lataa();
         lisaaUusiTehtavaPainike.setOnAction(event -> lisaaTehtava());
         uusiTehtavaNimi.setOnAction(event -> lisaaTehtava());
@@ -46,11 +56,8 @@ public class MainController implements Initializable {
     }
 
     private void tallenna() {
-        List<Tehtava> kaikkiTehtavat = new ArrayList<>();
-        kaikkiTehtavat.addAll(haeTehtavat(tekemattomat));
-        kaikkiTehtavat.addAll(haeTehtavat(tehdyt));
         ObjectMapper mapper = new ObjectMapper();
-        mapper.writeValue(Path.of("tehtavat.json"), kaikkiTehtavat);
+        mapper.writeValue(Path.of("tehtavat.json"), tehtavat);
     }
 
     private void lataa() {
@@ -61,36 +68,41 @@ public class MainController implements Initializable {
         try {
             ObjectMapper mapper = new ObjectMapper();
             List<Tehtava> kaikkiTehtavat = mapper.readValue(path.toFile(), new TypeReference<>() {});
-            kaikkiTehtavat.forEach(tehtava -> {
-                CheckBox checkbox = luoCheckBox(tehtava.getTeksti(), tehtava.getTehty());
-                if (tehtava.getTehty()) {
-                    tehdyt.getChildren().add(checkbox);
-                } else {
-                    tekemattomat.getChildren().add(checkbox);
-                }
-            });
+            tehtavat.addAll(kaikkiTehtavat);
         } catch (JacksonException je) {
             System.out.println("JSONin lukeminen epäonnistui: " + je.getMessage());
         }
     }
 
-
-    private CheckBox luoCheckBox(String teksti,boolean valittu) {
-        CheckBox tehtava = new CheckBox(teksti);
-        tehtava.setSelected(valittu);
+    private CheckBox luoCheckBox(Tehtava t) {
+        CheckBox tehtava = new CheckBox(t.getTeksti());
+        tehtava.setSelected(t.getTehty());
         // metodin runko piilotettu...
         tehtava.setOnAction(event -> {
-            if (tehtava.isSelected()) {
-                tekemattomat.getChildren().remove(tehtava);
-                tehdyt.getChildren().add(tehtava);
-            } else {
-                tehdyt.getChildren().remove(tehtava);
-                tekemattomat.getChildren().add(tehtava);
-            }
-            tallenna();
+            // MUUTOS: Emme enää siirrä komponenttia käsin VBoxista toiseen.
+            // Sen sijaan päivitämme mallilistaa, mikä laukaisee näkymän päivityksen.
+            tehtavat.remove(t);
+            tehtavat.add(new Tehtava(t.getTeksti(), !t.getTehty()));
         });
         return tehtava;
     }
+    private void paivitaNakyma() {
+        // Tyhjennetään nykyiset listat
+        tekemattomat.getChildren().clear();
+        tehdyt.getChildren().clear();
+
+        // Rakennetaan näkymä uudestaan mallin perusteella.
+        // Metodi luoCheckBox(tehtava) saa nyt koko olion parametrina.
+        for (Tehtava tehtava : tehtavat) {
+            CheckBox cb = luoCheckBox(tehtava);
+            if (tehtava.getTehty()) {
+                tehdyt.getChildren().add(cb);
+            } else {
+                tekemattomat.getChildren().add(cb);
+            }
+        }
+    }
+
 
     private void lisaaTehtava() {
         String teksti = uusiTehtavaNimi.getText();
@@ -99,7 +111,7 @@ public class MainController implements Initializable {
             return;
         }
         teksti = teksti.trim();
-        tekemattomat.getChildren().add(luoCheckBox(teksti, false));
+        tehtavat.add(new Tehtava(teksti, false));
         CheckBox tehtava = new CheckBox(teksti);
         tehtava.setOnAction(event -> {
             if (tehtava.isSelected()) { // Tehtävä valittu --> Siirretään tehtyjen joukkoon
@@ -115,7 +127,7 @@ public class MainController implements Initializable {
             uusiTehtavaNimi.clear();
             uusiTehtavaNimi.requestFocus();
 
-            tallenna();
+            //tallenna();
         }
 
     }
