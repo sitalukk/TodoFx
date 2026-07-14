@@ -1,14 +1,14 @@
 package fi.jyu.ohj2.simoL.todo;
 
+import javafx.beans.Observable;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.layout.VBox;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
@@ -18,12 +18,15 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.ResourceBundle;
 
 public class MainController implements Initializable {
 
-    private ObservableList<Tehtava> tehtavat = FXCollections.observableArrayList();
+    // Parempi tapa, käytä tätä!
+    private final ObservableList<Tehtava> tehtavat
+            = FXCollections.observableArrayList(tehtava -> new Observable[] {tehtava.tehtyProperty()});
 
     @FXML
     private Button lisaaUusiTehtavaPainike;
@@ -32,20 +35,45 @@ public class MainController implements Initializable {
     private TextField uusiTehtavaNimi;
 
     @FXML
-    private VBox tekemattomat;
+    private TableView<Tehtava> tehtavaTaulu;
 
     @FXML
-    private VBox tehdyt;
+    private Button poistaValittuPainike;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        SortedList<Tehtava> tehtavatLajiteltu = tehtavat.sorted(Comparator.comparing(Tehtava::getTehty));
+        tehtavaTaulu.setItems(tehtavatLajiteltu);
+        //tehtavaTaulu.setItems(tehtavat);
+
+        tehtavaTaulu.setEditable(true);
+
+        TableColumn<Tehtava, Boolean> tehtySarake = new TableColumn<>("Tehty");
+        tehtySarake.setCellValueFactory(cd -> cd.getValue().tehtyProperty());
+        tehtySarake.setCellFactory(CheckBoxTableCell.forTableColumn(tehtySarake));
+        tehtavaTaulu.getColumns().add(tehtySarake);
+
+        TableColumn<Tehtava, String> tekstiSarake = new TableColumn<>("Tehtävä");
+        tekstiSarake.setCellValueFactory(cd -> cd.getValue().tekstiProperty());
+        tehtavaTaulu.getColumns().add(tekstiSarake);
+
         tehtavat.addListener((ListChangeListener<Tehtava>) change -> {
-            paivitaNakyma();
             tallenna();
         });
+
         lataa();
-        lisaaUusiTehtavaPainike.setOnAction(event -> lisaaTehtava());
         uusiTehtavaNimi.setOnAction(event -> lisaaTehtava());
+        lisaaUusiTehtavaPainike.setOnAction(event -> lisaaTehtava());
+
+        poistaValittuPainike.setOnAction(event -> poistaValittu());
+        poistaValittuPainike.setVisible(false);
+        tehtavaTaulu.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue == null) {
+                poistaValittuPainike.setVisible(false);
+            } else {
+                poistaValittuPainike.setVisible(true);
+            }
+        });
     }
 
     private List<Tehtava> haeTehtavat(VBox sailio) {
@@ -74,34 +102,17 @@ public class MainController implements Initializable {
         }
     }
 
-    private CheckBox luoCheckBox(Tehtava t) {
-        CheckBox tehtava = new CheckBox(t.getTeksti());
-        tehtava.setSelected(t.getTehty());
-        // metodin runko piilotettu...
-        tehtava.setOnAction(event -> {
-            // MUUTOS: Emme enää siirrä komponenttia käsin VBoxista toiseen.
-            // Sen sijaan päivitämme mallilistaa, mikä laukaisee näkymän päivityksen.
-            tehtavat.remove(t);
-            tehtavat.add(new Tehtava(t.getTeksti(), !t.getTehty()));
-        });
-        return tehtava;
-    }
-    private void paivitaNakyma() {
-        // Tyhjennetään nykyiset listat
-        tekemattomat.getChildren().clear();
-        tehdyt.getChildren().clear();
-
-        // Rakennetaan näkymä uudestaan mallin perusteella.
-        // Metodi luoCheckBox(tehtava) saa nyt koko olion parametrina.
-        for (Tehtava tehtava : tehtavat) {
-            CheckBox cb = luoCheckBox(tehtava);
-            if (tehtava.getTehty()) {
-                tehdyt.getChildren().add(cb);
-            } else {
-                tekemattomat.getChildren().add(cb);
-            }
+    private void poistaValittu() {
+        // 1. Hae valittu tehtävä taulukon valintamallista
+        Tehtava valittuTehtava = tehtavaTaulu.getSelectionModel().getSelectedItem();
+        // 2. Jos mitään ei ole valittu, ei tehdä mitään
+        if (valittuTehtava == null) {
+            return;
         }
+        // 3. Poistetaan tehtävä mallilistasta
+        tehtavat.remove(valittuTehtava);
     }
+
 
 
     private void lisaaTehtava() {
@@ -115,11 +126,11 @@ public class MainController implements Initializable {
         CheckBox tehtava = new CheckBox(teksti);
         tehtava.setOnAction(event -> {
             if (tehtava.isSelected()) { // Tehtävä valittu --> Siirretään tehtyjen joukkoon
-                tekemattomat.getChildren().remove(tehtava);
-                tehdyt.getChildren().add(tehtava);
+                //tekemattomat.getChildren().remove(tehtava);
+                //tehdyt.getChildren().add(tehtava);
             } else { // Tehtävä ei-valittu--> Siirretään takaisin tekemättömien joukkoon
-                tehdyt.getChildren().remove(tehtava);
-                tekemattomat.getChildren().add(tehtava);
+                //tehdyt.getChildren().remove(tehtava);
+                //tekemattomat.getChildren().add(tehtava);
             }
             tallenna();
         });
