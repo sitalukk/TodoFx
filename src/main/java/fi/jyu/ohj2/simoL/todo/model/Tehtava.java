@@ -1,4 +1,4 @@
-package fi.jyu.ohj2.simoL.todo;
+package fi.jyu.ohj2.simoL.todo.model;
 
 import javafx.beans.property.*;
 
