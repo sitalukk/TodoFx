@@ -1,11 +1,11 @@
 package fi.jyu.ohj2.simoL.todo.controller;
 
-import fi.jyu.ohj2.simoL.todo.App;
+import fi.jyu.ohj2.simoL.todo.model.App;
 import fi.jyu.ohj2.simoL.todo.model.Tehtava;
 import fi.jyu.ohj2.simoL.todo.model.Tehtavakokoelma;
+import fi.jyu.ohj2.simoL.todo.persistence.JsonTehtavaRepository;
 import javafx.beans.Observable;
 import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
@@ -22,6 +22,7 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -30,7 +31,7 @@ public class MainController implements Initializable {
 
     // Parempi tapa, käytä tätä!
     private final ObservableList<Tehtava> tehtavat
-            = FXCollections.observableArrayList(tehtava -> new Observable[] {tehtava.tehtyProperty()});
+            = FXCollections.observableArrayList(tehtava -> new Observable[] {(Observable) tehtava.tehtyProperty()});
 
     @FXML
     private Button lisaaUusiTehtavaPainike;
@@ -44,7 +45,10 @@ public class MainController implements Initializable {
     @FXML
     private Button poistaValittuPainike;
 
-    private Tehtavakokoelma tehtavakokoelma = new Tehtavakokoelma();
+    @FXML
+    private Tehtavakokoelma tehtavakokoelma = new Tehtavakokoelma(new JsonTehtavaRepository(Path.of("tehtavat.json")));
+
+
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -53,7 +57,7 @@ public class MainController implements Initializable {
         tehtavaTaulu.setEditable(true);
 
         TableColumn<Tehtava, Boolean> tehtySarake = new TableColumn<>("Tehty");
-        tehtySarake.setCellValueFactory(cd -> cd.getValue().tehtyProperty());
+        tehtySarake.setCellValueFactory(cd -> (javafx.beans.value.ObservableValue<Boolean>) cd.getValue().tehtyProperty());
         tehtySarake.setCellFactory(CheckBoxTableCell.forTableColumn(tehtySarake));
         tehtavaTaulu.getColumns().add(tehtySarake);
 

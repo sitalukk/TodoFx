@@ -41,7 +41,7 @@ public class Tehtava {
     }
     private final ObservableList<Tehtava> tehtavat = FXCollections.observableArrayList(
             tehtava -> new Observable[] {
-                    tehtava.tehtyProperty(),
+                    (Observable) tehtava.tehtyProperty(),
                     tehtava.otsikkoProperty(),
                     tehtava.kuvausProperty(),
                     tehtava.prioriteettiProperty()

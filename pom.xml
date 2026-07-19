@@ -33,7 +33,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <javafx.plugin.version>0.0.8</javafx.plugin.version>
     <javaVersion>25</javaVersion>
-    <main.class>fi.jyu.ohj2.simoL.todo.Main</main.class>
+    <main.class>fi.jyu.ohj2.simoL.todo.model.Main</main.class>
     <jpackage.type>APP_IMAGE</jpackage.type>
   </properties>
 
@@ -52,6 +52,12 @@
           <groupId>tools.jackson.core</groupId>
           <artifactId>jackson-databind</artifactId>
           <version>3.0.4</version>
+      </dependency>
+      <dependency>
+          <groupId>org.junit.jupiter</groupId>
+          <artifactId>junit-jupiter</artifactId>
+          <version>6.0.3</version>
+          <scope>test</scope>
       </dependency>
   </dependencies>
 
